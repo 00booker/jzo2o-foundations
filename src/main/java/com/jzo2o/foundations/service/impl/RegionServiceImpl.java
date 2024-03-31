@@ -14,13 +14,16 @@ import com.jzo2o.foundations.constants.RedisConstants;
 import com.jzo2o.foundations.enums.FoundationStatusEnum;
 import com.jzo2o.foundations.mapper.CityDirectoryMapper;
 import com.jzo2o.foundations.mapper.RegionMapper;
+import com.jzo2o.foundations.mapper.ServeMapper;
 import com.jzo2o.foundations.model.domain.CityDirectory;
 import com.jzo2o.foundations.model.domain.Region;
+import com.jzo2o.foundations.model.domain.Serve;
 import com.jzo2o.foundations.model.dto.request.RegionPageQueryReqDTO;
 import com.jzo2o.foundations.model.dto.request.RegionUpsertReqDTO;
 import com.jzo2o.foundations.model.dto.response.RegionResDTO;
 import com.jzo2o.foundations.service.IConfigRegionService;
 import com.jzo2o.foundations.service.IRegionService;
+import com.jzo2o.foundations.service.IServeService;
 import com.jzo2o.mysql.utils.PageUtils;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -43,6 +46,13 @@ public class RegionServiceImpl extends ServiceImpl<RegionMapper, Region> impleme
     private IConfigRegionService configRegionService;
     @Resource
     private CityDirectoryMapper cityDirectoryMapper;
+
+    private IServeService serveService;
+    @Resource
+    private RegionMapper regionMapper;
+
+    @Resource
+    private ServeMapper serveMapper;
 
 
     /**
@@ -161,7 +171,28 @@ public class RegionServiceImpl extends ServiceImpl<RegionMapper, Region> impleme
         }
         //如果需要启用区域，需要校验该区域下是否有上架的服务
         //todo
-
+        // 错误代码 类无法多继承，mybatis-plus这个只适合单表，为什么有了Servidce CRUD接口还会有Mapper CRUD接口呢？
+        // class RegionServiceImpl extends ServiceImpl<RegionMapper, Region>
+        // boolean onSale = lambdaQuery()
+        //         .eq(Region::getRegionId, id)
+        //         .eq(Serve::getSaleStatus, FoundationStatusEnum.ENABLE.getStatus())
+        //         .count() > 0;
+        // if (!onSale) {
+        //     throw new ForbiddenOperationException("区域下无上架的服务无法启用");
+        // }
+        // 正确代码
+        // int count = serveService.queryServeCountByRegionIdAndSaleStatus(id, FoundationStatusEnum.ENABLE.getStatus());
+        // if (count <= 0) {
+        //     throw new ForbiddenOperationException("区域下无上架的服务无法启用");
+        // }
+        // }
+        LambdaQueryWrapper<Serve> eq = Wrappers.<Serve>lambdaQuery()
+                .eq(Serve::getRegionId, id)
+                .eq(Serve::getSaleStatus, FoundationStatusEnum.ENABLE.getStatus());
+        boolean onSale = serveMapper.selectCount(eq) > 0 ? true : false;
+        if (!onSale) {
+            throw new ForbiddenOperationException("区域下无上架的服务无法启用");
+        }
         //更新启用状态
         LambdaUpdateWrapper<Region> updateWrapper = Wrappers.<Region>lambdaUpdate()
                 .eq(Region::getId, id)
@@ -196,11 +227,18 @@ public class RegionServiceImpl extends ServiceImpl<RegionMapper, Region> impleme
 
         //1.如果禁用区域下有上架的服务则无法禁用
         //todo
-//        int count = serveService.queryServeCountByRegionIdAndSaleStatus(id, FoundationStatusEnum.ENABLE.getStatus());
-//        if (count > 0) {
-//            throw new ForbiddenOperationException("区域下有上架的服务无法禁用");
-//        }
-
+        //已完成
+       // int count = serveService.queryServeCountByRegionIdAndSaleStatus(id, FoundationStatusEnum.ENABLE.getStatus());
+       // if (count > 0) {
+       //     throw new ForbiddenOperationException("区域下有上架的服务无法禁用");
+       // }
+        LambdaQueryWrapper<Serve> queryWrapper = Wrappers.<Serve>lambdaQuery()
+                .eq(Serve::getRegionId, id)
+                .eq(Serve::getSaleStatus, FoundationStatusEnum.ENABLE.getStatus());
+        boolean offSale = serveMapper.selectCount(queryWrapper) > 0 ? false : true;
+        if (!offSale) {
+            throw new ForbiddenOperationException("区域下有上架的服务无法禁用");
+        }
         //更新禁用状态
         LambdaUpdateWrapper<Region> updateWrapper = Wrappers.<Region>lambdaUpdate()
                 .eq(Region::getId, id)
