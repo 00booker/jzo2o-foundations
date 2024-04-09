@@ -5,11 +5,8 @@ import com.jzo2o.common.enums.EnableStatusEnum;
 import com.jzo2o.common.model.PageResult;
 import com.jzo2o.foundations.model.dto.request.ServePageQueryReqDTO;
 import com.jzo2o.foundations.model.dto.request.ServeUpsertReqDTO;
-import com.jzo2o.foundations.model.dto.response.ServeAggregationSimpleResDTO;
 import com.jzo2o.foundations.model.dto.response.ServeResDTO;
-import com.jzo2o.foundations.model.dto.response.ServeSimpleResDTO;
 import com.jzo2o.foundations.service.IServeService;
-import com.jzo2o.foundations.service.ServeAggregationService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -37,8 +34,13 @@ import java.util.List;
 public class ServeController {
     @Resource
     private IServeService serveService;
-    @Resource
-    private ServeAggregationService serveAggregationService;
+
+    @GetMapping("/page")
+    @ApiOperation("区域服务分页查询")
+    public PageResult<ServeResDTO> page(ServePageQueryReqDTO servePageQueryReqDTO) {
+        PageResult<ServeResDTO> page = serveService.page(servePageQueryReqDTO);
+        return page;
+    }
 
     @PostMapping("/batch")
     @ApiOperation("区域服务批量新增")
@@ -57,6 +59,33 @@ public class ServeController {
         serveService.update(id, BigDecimal.valueOf(price));
     }
 
+    @DeleteMapping("/{id}")
+    @ApiOperation("区域服务删除")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id", value = "服务id", required = true, dataTypeClass = Long.class)
+    })
+    public void delete(@NotNull(message = "id不能为空") @PathVariable("id") Long id) {
+        serveService.deleteById(id);
+    }
+
+    @PutMapping("/onSale/{id}")
+    @ApiOperation("区域服务上架")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id", value = "服务id", required = true, dataTypeClass = Long.class),
+    })
+    public void onSale(@PathVariable("id") Long id) {
+        serveService.onSale(id);
+    }
+
+    @PutMapping("/offSale/{id}")
+    @ApiOperation("区域服务下架")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id", value = "服务id", required = true, dataTypeClass = Long.class),
+    })
+    public void offSale(@PathVariable("id") Long id) {
+        serveService.offSale(id);
+    }
+
     @PutMapping("/onHot/{id}")
     @ApiOperation("区域服务设置热门")
     @ApiImplicitParams({
@@ -73,39 +102,5 @@ public class ServeController {
     })
     public void offHot(@NotNull(message = "id不能为空") @PathVariable("id") Long id) {
         serveService.changeHotStatus(id, EnableStatusEnum.DISABLE.getStatus());
-    }
-
-    @PutMapping("/onSale/{id}")
-    @ApiOperation("区域服务上架")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "id", value = "服务id", required = true, dataTypeClass = Long.class),
-    })
-    public void onSale(@PathVariable("id") Long id) {
-        serveService.onSale(id);
-
-    }
-
-    @PutMapping("/offSale/{id}")
-    @ApiOperation("区域服务下架")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "id", value = "服务id", required = true, dataTypeClass = Long.class),
-    })
-    public void offSale(@PathVariable("id") Long id) {
-        serveService.offSale(id);
-    }
-
-    @DeleteMapping("/{id}")
-    @ApiOperation("区域服务删除")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "id", value = "服务id", required = true, dataTypeClass = Long.class)
-    })
-    public void delete(@NotNull(message = "id不能为空") @PathVariable("id") Long id) {
-        serveService.deleteById(id);
-    }
-
-    @GetMapping("/page")
-    @ApiOperation("区域服务分页查询")
-    public PageResult<ServeResDTO> page(ServePageQueryReqDTO servePageQueryReqDTO) {
-        return serveService.page(servePageQueryReqDTO);
     }
 }

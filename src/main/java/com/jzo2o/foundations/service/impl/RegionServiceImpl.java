@@ -18,14 +18,13 @@ import com.jzo2o.foundations.model.domain.CityDirectory;
 import com.jzo2o.foundations.model.domain.Region;
 import com.jzo2o.foundations.model.dto.request.RegionPageQueryReqDTO;
 import com.jzo2o.foundations.model.dto.request.RegionUpsertReqDTO;
-import com.jzo2o.foundations.model.dto.response.RegionDisplayResDTO;
 import com.jzo2o.foundations.model.dto.response.RegionResDTO;
-import com.jzo2o.foundations.service.HomeService;
 import com.jzo2o.foundations.service.IConfigRegionService;
 import com.jzo2o.foundations.service.IRegionService;
 import com.jzo2o.foundations.service.IServeService;
 import com.jzo2o.mysql.utils.PageUtils;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,8 +46,6 @@ public class RegionServiceImpl extends ServiceImpl<RegionMapper, Region> impleme
     private IConfigRegionService configRegionService;
     @Resource
     private CityDirectoryMapper cityDirectoryMapper;
-    @Resource
-    private HomeService homeService;
 
 
     /**
@@ -150,12 +147,6 @@ public class RegionServiceImpl extends ServiceImpl<RegionMapper, Region> impleme
      * @param id 区域id
      */
     @Override
-    @Caching(evict = {
-            @CacheEvict(value = RedisConstants.CacheName.JZ_CACHE, key = "'ACTIVE_REGIONS'", beforeInvocation = true),
-            @CacheEvict(value = RedisConstants.CacheName.SERVE_ICON, key = "#id", beforeInvocation = true),
-            @CacheEvict(value = RedisConstants.CacheName.HOT_SERVE, key = "#id", beforeInvocation = true),
-            @CacheEvict(value = RedisConstants.CacheName.SERVE_TYPE, key = "#id", beforeInvocation = true)
-    })
     public void active(Long id) {
         //区域信息
         Region region = baseMapper.selectById(id);
@@ -179,10 +170,7 @@ public class RegionServiceImpl extends ServiceImpl<RegionMapper, Region> impleme
         update(updateWrapper);
 
         //3.如果是启用操作，刷新缓存：启用区域列表、首页图标、热门服务、服务类型
-        homeService.queryActiveRegionListCache();
-        homeService.queryServeIconCategoryByRegionIdCache(id);
-        homeService.findHotServeListByRegionIdCache(id);
-        homeService.queryServeTypeListByRegionIdCache(id);
+        // todo
     }
 
     /**
@@ -191,12 +179,6 @@ public class RegionServiceImpl extends ServiceImpl<RegionMapper, Region> impleme
      * @param id 区域id
      */
     @Override
-    @Caching(evict = {
-            @CacheEvict(value = RedisConstants.CacheName.JZ_CACHE, key = "'ACTIVE_REGIONS'", beforeInvocation = true),
-            @CacheEvict(value = RedisConstants.CacheName.SERVE_ICON, key = "#id", beforeInvocation = true),
-            @CacheEvict(value = RedisConstants.CacheName.HOT_SERVE, key = "#id", beforeInvocation = true),
-            @CacheEvict(value = RedisConstants.CacheName.SERVE_TYPE, key = "#id", beforeInvocation = true)
-    })
     public void deactivate(Long id) {
         //区域信息
         Region region = baseMapper.selectById(id);
@@ -220,5 +202,14 @@ public class RegionServiceImpl extends ServiceImpl<RegionMapper, Region> impleme
         update(updateWrapper);
     }
 
+    /**
+     * 已开通服务区域列表
+     *
+     * @return 区域简略列表
+     */
+    @Override
+    public List<RegionSimpleResDTO> queryActiveRegionListCache() {
+        return queryActiveRegionList();
+    }
 
 }
